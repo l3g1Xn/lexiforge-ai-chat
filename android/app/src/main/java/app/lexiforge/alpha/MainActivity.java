@@ -73,16 +73,17 @@ public class MainActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(false);
+        settings.setAllowContentAccess(true);
         try {
             settings.setAllowUniversalAccessFromFileURLs(false);
             settings.setAllowFileAccessFromFileURLs(true);
         } catch (Throwable ignored) {}
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setLoadsImagesAutomatically(true);
-        settings.setBlockNetworkLoads(true);
-        settings.setBlockNetworkImage(true);
+        settings.setBlockNetworkLoads(false);
+        settings.setBlockNetworkImage(false);
         if (Build.VERSION.SDK_INT >= 21) {
             try { settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW); } catch (Throwable ignored) {}
         }
@@ -114,7 +115,7 @@ public class MainActivity extends Activity {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
                 if (consoleMessage != null) {
-                    Log.d(TAG, consoleMessage.message());
+                    Log.d(TAG, consoleMessage.message() + " @" + consoleMessage.sourceId());
                 }
                 return true;
             }
@@ -165,10 +166,10 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (webView != null) {
             webView.evaluateJavascript(
-                    "(function(){if(!document.getElementById('back')||document.getElementById('back').classList.contains('hidden'))return false;document.getElementById('back').click();return true;})()",
+                    "(function(){try{if(window.__lexiGoHome)return window.__lexiGoHome();}catch(e){}return false;})()",
                     value -> {
                         if ("true".equals(value) || "\"true\"".equals(value)) return;
-                        try { super.onBackPressed(); } catch (Throwable ignored) { finish(); }
+                        try { MainActivity.super.onBackPressed(); } catch (Throwable ignored) { finish(); }
                     });
             return;
         }

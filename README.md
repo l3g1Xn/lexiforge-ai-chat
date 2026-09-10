@@ -8,7 +8,11 @@ LexiForge cleans messy text, talks in short lines, and runs look-alike drills. C
 
 Sideload APK from **[Releases](https://github.com/l3g1Xn/lexiforge-ai-chat/releases)**.
 
-Package `app.lexiforge.alpha`. Signed for sideload (not Play Store). If Play Protect says uncommon: More details → Install anyway.
+Package `app.lexiforge.alpha` · **v1.0.1**. Signed for sideload (not Play Store).
+
+**Uninstall any older LexiForge first** — v1.0.1 uses a new signing certificate.
+
+If Play Protect says uncommon: More details → Install anyway.
 
 iOS IPA is not included. That needs a Mac, Xcode, and an Apple Developer account.
 
@@ -29,10 +33,3 @@ GitHub Actions (this repo) builds and publishes the APK:
 
 - Push a `v*` tag, or
 - Actions → **Publish Android APK** → Run workflow
-
-Local (needs Android SDK):
-
-```bash
-echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-cd android && gradle assembleRelease
-```
