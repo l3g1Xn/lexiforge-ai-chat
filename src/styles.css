@@ -1,0 +1,180 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/AtkinsonHyperlegible-Italic.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/AtkinsonHyperlegible-BoldItalic.ttf") format("truetype");
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OpenDyslexic-Regular.otf") format("opentype");
+}
+@font-face {
+  font-family: "OpenDyslexic";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/OpenDyslexic-Bold.otf") format("opentype");
+}
+
+@theme {
+  --color-bg: #f3ede0;
+  --color-paper: #fff9ee;
+  --color-fg: #1b1712;
+  --color-muted: #4a453c;
+  --color-accent: #1a5c52;
+  --color-accent-fg: #f3ede0;
+  --color-border: #d4c8b0;
+  --color-mark: #f3d7a4;
+  --color-mark-ink: #6b3a12;
+  --color-good: #215c45;
+  --color-good-fg: #f3ede0;
+  --color-warn: #8a4b12;
+
+  --font-sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-dyslexic: "OpenDyslexic", "Atkinson Hyperlegible", sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-card:
+    0 0 0 1px rgba(27, 23, 18, 0.08),
+    0 1px 2px rgba(27, 23, 18, 0.04),
+    0 10px 28px rgba(27, 23, 18, 0.05);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    font-family: var(--app-font, var(--font-sans));
+    font-size: var(--app-size, 20px);
+    letter-spacing: var(--app-tracking, 0.04em);
+    line-height: var(--app-leading, 1.7);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    min-height: 100dvh;
+    touch-action: manipulation;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--color-border);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    border: 3px solid var(--color-paper);
+    box-shadow: var(--shadow-card);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    border: 3px solid var(--color-paper);
+  }
+
+  textarea,
+  input[type="text"],
+  input:not([type]) {
+    background: var(--color-paper);
+    color: var(--color-fg);
+    border: 0;
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-md);
+  }
+}
+
+@layer utilities {
+  .tap-lg {
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  .readable-col {
+    max-width: 36rem;
+    width: 100%;
+  }
+
+  .word-mark {
+    background: var(--color-mark);
+    color: var(--color-fg);
+    text-decoration: underline;
+    text-decoration-color: var(--color-mark-ink);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.22em;
+    border-radius: 6px;
+    padding: 0.05em 0.18em;
+    box-decoration-break: clone;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
