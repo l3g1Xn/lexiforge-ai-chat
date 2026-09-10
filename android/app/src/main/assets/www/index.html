@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LexiForge</title>
+  <style>
+    @font-face {
+      font-family: Atkinson;
+      src: url("fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: Atkinson;
+      src: url("fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: OpenDyslexic;
+      src: url("fonts/OpenDyslexic-Regular.otf") format("opentype");
+      font-weight: 400;
+    }
+    :root {
+      --bg: #F3EDE0;
+      --paper: #FFF9EE;
+      --ink: #1B1712;
+      --muted: #4A4338;
+      --teal: #1A5C52;
+      --mark: #E8C48A;
+      --size: 20px;
+      --track: 0.05em;
+      --lead: 1.75;
+      --font: Atkinson, "Atkinson Hyperlegible", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink); }
+    body {
+      font-family: var(--font);
+      font-size: var(--size);
+      letter-spacing: var(--track);
+      line-height: var(--lead);
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 1rem 1rem 5rem;
+    }
+    h1 { font-size: 1.6rem; margin: 0; }
+    p { margin: 0.6rem 0; }
+    button, textarea, input[type="range"] { font: inherit; letter-spacing: inherit; }
+    button {
+      min-height: 3.25rem;
+      padding: 0.7rem 1rem;
+      border: 0;
+      border-radius: 0.7rem;
+      background: var(--teal);
+      color: #fff;
+      font-weight: 700;
+      width: 100%;
+      text-align: left;
+    }
+    button.secondary { background: var(--paper); color: var(--ink); box-shadow: 0 1px 0 #d9d0c0; }
+    button.ghost { background: transparent; color: var(--teal); width: auto; }
+    button:active { transform: scale(0.99); }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .row button { flex: 1; }
+    textarea {
+      width: 100%;
+      min-height: 8rem;
+      padding: 0.8rem 1rem;
+      border: 2px solid #cbbfa8;
+      border-radius: 0.7rem;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .card { background: var(--paper); border-radius: 0.8rem; padding: 1rem; margin: 0.6rem 0; box-shadow: 0 1px 0 #d9d0c0; }
+    .muted { color: var(--muted); font-size: 1rem; }
+    .mark {
+      background: var(--mark);
+      text-decoration: underline;
+      border: 0;
+      padding: 0 0.15em;
+      min-height: 0;
+      width: auto;
+      color: var(--ink);
+      font-weight: 700;
+      border-radius: 0.2em;
+    }
+    header { display: flex; justify-content: space-between; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+    .temp-labels { display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700; color: var(--teal); }
+    input[type="range"] { width: 100%; height: 2.2rem; accent-color: var(--teal); }
+    .stack { display: grid; gap: 0.6rem; margin-top: 1rem; }
+    .hidden { display: none !important; }
+    .opt { background: var(--paper); color: var(--ink); }
+    .opt.ok { background: var(--teal); color: #fff; }
+    .opt.bad { background: #8a2f2f; color: #fff; }
+    label.small { display: block; margin-top: 0.6rem; color: var(--muted); font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <button class="ghost hidden" id="back" type="button">Back</button>
+      <h1 id="title">LexiForge</h1>
+    </div>
+    <div class="row" style="width:auto">
+      <button class="secondary" id="cleanToggle" type="button" style="width:auto">Show clean</button>
+      <button class="secondary" id="speakScreen" type="button" style="width:auto">Read this screen aloud</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <script src="lexi.js"></script>
+  <script>
+    const KEY = "lexiforge-v1";
+    const defaults = {
+      temperature: 2, font: "atkinson", fontSize: 20, letterSpacing: 0.05,
+      lineHeight: 1.75, showClean: false, streak: 0, lastActiveDate: null,
+      wordsPracticed: 0, suggestedTemp: null
+    };
+    function load() {
+      try { return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
+      catch { return { ...defaults }; }
+    }
+    function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
+    let state = load();
+    let route = "home";
+    let speakText = "";
+
+    function applyChrome() {
+      document.documentElement.style.setProperty("--size", state.fontSize + "px");
+      document.documentElement.style.setProperty("--track", state.letterSpacing + "em");
+      document.documentElement.style.setProperty("--lead", String(state.lineHeight));
+      document.documentElement.style.setProperty("--font", state.font === "opendyslexic"
+        ? 'OpenDyslexic, Atkinson, sans-serif' : 'Atkinson, sans-serif');
+      document.getElementById("cleanToggle").textContent = state.showClean ? "Hide clean" : "Show clean";
+      document.getElementById("back").classList.toggle("hidden", route === "home");
+    }
+    function tempLabel(t) {
+      if (t <= 0) return "Clean";
+      if (t <= 3) return "Easy";
+      if (t <= 6) return "Train";
+      if (t <= 8) return "Hard";
+      return "Drill";
+    }
+    function speak(text) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.92;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+    function tokensHtml(tokens) {
+      return tokens.map((t) => {
+        if (!t.noisy || state.showClean) return escapeHtml(t.original);
+        return '<button type="button" class="mark" data-id="' + t.id + '" data-orig="' + escapeAttr(t.original.trim()) + '" data-hint="' + escapeAttr(t.hint || "") + '">' + escapeHtml(t.display) + "</button>";
+      }).join("");
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&","<":"<",">":">","\"":""","'":"&#39;" }[c]));
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+    function today() { return new Date().toISOString().slice(0, 10); }
+    function touchStreak() {
+      const d = today();
+      if (state.lastActiveDate === d) return;
+      const y = new Date(); y.setDate(y.getDate() - 1);
+      const yk = y.toISOString().slice(0, 10);
+      state.streak = state.lastActiveDate === yk ? state.streak + 1 : 1;
+      state.lastActiveDate = d;
+      save(state);
+    }
+
+    const chatMsgs = [];
+    let chatTurn = 0;
+    const drill = { cards: [], i: 0, right: 0, done: false, typed: "" };
+
+    function render() {
+      applyChrome();
+      const el = document.getElementById("app");
+      const title = document.getElementById("title");
+      if (route === "home") {
+        title.textContent = "LexiForge";
+        speakText = "LexiForge home. Temperature is " + tempLabel(state.temperature) + ". Help me read this. Talk or write with me. Two minute drill.";
+        el.innerHTML = `
+          <p class="muted">Read. Write. Practice. Works on this device.</p>
+          <div class="card">
+            <div class="temp-labels"><span>Clean 0</span><span>Easy</span><span>Train</span><span>Hard</span><span>Drill 10</span></div>
+            <input id="temp" type="range" min="0" max="10" step="0.5" value="${state.temperature}" />
+            <p><strong>${tempLabel(state.temperature)}</strong> · ${state.temperature}</p>
+          </div>
+          ${state.suggestedTemp != null ? `<div class="card"><p>Try ${state.suggestedTemp} tomorrow? You choose.</p>
+            <div class="row"><button type="button" id="useSug">Use ${state.suggestedTemp}</button>
+            <button class="secondary" type="button" id="skipSug">Keep ${state.temperature}</button></div></div>` : ""}
+          <div class="stack">
+            <button type="button" data-go="read">Help me read this<br><span class="muted">Paste a sign or a message</span></button>
+            <button class="secondary" type="button" data-go="chat">Talk / write with me<br><span class="muted">Short chat with a few marked words</span></button>
+            <button class="secondary" type="button" data-go="drill">2-minute drill<br><span class="muted">Quick cards. Then stop.</span></button>
+          </div>
+          <p class="muted">${state.streak ? state.streak + " day streak." : "Start today."} ${state.wordsPracticed ? state.wordsPracticed + " words practiced." : ""}</p>
+          <p class="muted">Font</p>
+          <div class="row">
+            <button class="${state.font==="atkinson"?"":"secondary"}" type="button" data-font="atkinson">Atkinson</button>
+            <button class="${state.font==="opendyslexic"?"":"secondary"}" type="button" data-font="opendyslexic">OpenDyslexic</button>
+          </div>
+          <label class="small">Size <input id="fs" type="range" min="18" max="28" step="1" value="${state.fontSize}" /></label>
+          <label class="small">Letter space <input id="ls" type="range" min="0.02" max="0.16" step="0.01" value="${state.letterSpacing}" /></label>
+          <label class="small">Line height <input id="lh" type="range" min="1.5" max="2.2" step="0.05" value="${state.lineHeight}" /></label>
+          <p class="muted">This is a practice tool and a reading helper. It does not diagnose or treat dyslexia. You control how hard it is. Use Clean mode whenever you need the real words.</p>
+        `;
+      } else if (route === "read") {
+        title.textContent = "Help me read this";
+        speakText = window._clean ? ("Help me read this. " + window._clean) : "Help me read this. Paste a sign, a message, or a paragraph. Then tap Clean it.";
+        el.innerHTML = `
+          <label>Paste the text
+            <textarea id="paste" placeholder="A sign, a message, or a paragraph.">${escapeHtml(window._raw || "")}</textarea>
+          </label>
+          <div class="stack">
+            <button type="button" id="doClean">Clean it</button>
+            <button class="secondary" type="button" id="doSay">Say it</button>
+            <button class="secondary" type="button" id="doChunk">Chunk it</button>
+          </div>
+          <div id="out">${window._clean ? `<div class="card"><p>${window._chunk ? escapeHtml(Lexi.chunkText(window._clean)) : escapeHtml(window._clean)}</p>
+            <p class="muted">What this means</p><p>${escapeHtml(window._meaning || "")}</p>
+            <button class="secondary" type="button" id="doCopy">${window._copied ? "Copied" : "Copy clean"}</button></div>` : ""}</div>
+        `;
+        const ta = document.getElementById("paste");
+        if (ta) ta.value = window._raw || "";
+      } else if (route === "chat") {
+        title.textContent = "Talk / write with me";
+        if (!chatMsgs.length) {
+          chatMsgs.push({ role: "assistant", text: Lexi.OPENING, tokens: Lexi.applyNoise(Lexi.OPENING, state.temperature) });
+        }
+        const last = [...chatMsgs].reverse().find((m) => m.role === "assistant");
+        speakText = "Talk and write with me. " + (last ? last.text : "");
+        el.innerHTML = `
+          <p class="muted">${state.temperature >= 9 ? "Drill mode is on. Chat stays readable." : "Marked words are practice. Tap one to see the clean spelling. Lexi runs on this device."}</p>
+          <div id="log">${chatMsgs.map((m) => {
+            if (m.role === "user") return `<article class="card"><p>${escapeHtml(m.text)}</p></article>`;
+            return `<article class="card">${m.userClean ? `<p>I think you mean: ${escapeHtml(m.userClean)}</p>` : ""}<p>${tokensHtml(m.tokens || Lexi.applyNoise(m.text, 0))}</p></article>`;
+          }).join("")}</div>
+          <div id="reveal"></div>
+          <form id="sendForm">
+            <textarea id="box" rows="3" placeholder="Type here. Spelling can be messy."></textarea>
+            <div class="row" style="margin-top:0.5rem">
+              <button type="submit">Send</button>
+              <button class="secondary" type="button" id="tooHard">Too hard</button>
+            </div>
+          </form>
+        `;
+      } else if (route === "drill") {
+        title.textContent = "2-minute drill";
+        if (!drill.cards.length) drill.cards = Lexi.pickDrill(10);
+        const card = drill.cards[drill.i];
+        if (drill.done || !card) {
+          const acc = drill.cards.length ? Math.round((drill.right / drill.cards.length) * 100) : 0;
+          speakText = "Drill done. " + drill.right + " of " + drill.cards.length + " correct.";
+          el.innerHTML = `<div class="card"><p>Done.</p><p>${drill.right} of ${drill.cards.length} correct (${acc}%).</p>
+            <div class="stack"><button type="button" data-go="home">Home</button>
+            <button class="secondary" type="button" id="again">Try again</button></div></div>`;
+        } else {
+          speakText = "Drill. " + card.prompt + " " + card.noisy;
+          const opts = (card.options || []).map((o) => `<button class="opt" type="button" data-ans="${escapeAttr(o)}">${escapeHtml(o)}</button>`).join("");
+          el.innerHTML = `
+            <p class="muted">${drill.i + 1} of ${drill.cards.length}</p>
+            <div class="card"><p>${escapeHtml(card.prompt)}</p><p><strong>${escapeHtml(card.noisy)}</strong></p><p class="muted">${escapeHtml(card.hint)}</p></div>
+            ${card.options ? `<div class="stack">${opts}</div>` : `<form id="typeForm"><input id="typed" style="width:100%;min-height:3rem;font:inherit;padding:0.6rem 0.8rem;border-radius:0.7rem;border:2px solid #cbbfa8" placeholder="Type the clean word" /><button type="submit" style="margin-top:0.5rem">Check</button></form>`}
+          `;
+        }
+      }
+    }
+
+    document.body.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-go],[data-font],#back,#cleanToggle,#speakScreen,#doClean,#doSay,#doChunk,#doCopy,#tooHard,#useSug,#skipSug,#again,.mark,.opt");
+      if (!t) return;
+      if (t.id === "back" || t.getAttribute("data-go") === "home") { route = t.getAttribute("data-go") || "home"; render(); return; }
+      if (t.getAttribute("data-go")) { route = t.getAttribute("data-go"); if (route === "drill") { drill.cards = Lexi.pickDrill(10); drill.i = 0; drill.right = 0; drill.done = false; } render(); return; }
+      if (t.id === "cleanToggle") { state.showClean = !state.showClean; save(state); render(); return; }
+      if (t.id === "speakScreen") { speak(speakText); return; }
+      if (t.dataset.font) { state.font = t.dataset.font; save(state); render(); return; }
+      if (t.id === "useSug") { state.temperature = state.suggestedTemp; state.suggestedTemp = null; save(state); render(); return; }
+      if (t.id === "skipSug") { state.suggestedTemp = null; save(state); render(); return; }
+      if (t.id === "doClean") {
+        const text = (document.getElementById("paste") || {}).value || "";
+        window._raw = text;
+        if (!text.trim()) return;
+        const r = Lexi.interpretOnDevice(text);
+        window._clean = r.clean; window._meaning = r.meaning; window._chunk = false; window._copied = false;
+        touchStreak(); state.wordsPracticed += 1; save(state); render(); return;
+      }
+      if (t.id === "doSay") { speak(window._clean || (document.getElementById("paste") || {}).value || ""); return; }
+      if (t.id === "doChunk") { window._chunk = !window._chunk; render(); return; }
+      if (t.id === "doCopy" && window._clean) {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(window._clean);
+        window._copied = true; render(); return;
+      }
+      if (t.id === "tooHard") { state.suggestedTemp = Math.max(0, state.temperature - 1); save(state); alert("On Home you can move Temperature down."); return; }
+      if (t.id === "again") { drill.cards = Lexi.pickDrill(10); drill.i = 0; drill.right = 0; drill.done = false; render(); return; }
+      if (t.classList.contains("mark")) {
+        const box = document.getElementById("reveal");
+        if (box) {
+          box.innerHTML = `<div class="card"><p>Yes — ${escapeHtml(t.dataset.orig)}. Nice catch.</p><p class="muted">${escapeHtml(t.dataset.hint)}</p></div>`;
+          state.wordsPracticed += 1; save(state); touchStreak();
+        }
+        return;
+      }
+      if (t.classList.contains("opt")) {
+        const card = drill.cards[drill.i];
+        const ok = t.dataset.ans.toLowerCase() === card.answer.toLowerCase();
+        if (ok) drill.right += 1;
+        t.classList.add(ok ? "ok" : "bad");
+        state.wordsPracticed += 1; save(state); touchStreak();
+        setTimeout(() => { drill.i += 1; if (drill.i >= drill.cards.length) { drill.done = true; if (drill.right / drill.cards.length < 0.6) state.suggestedTemp = Math.max(0, state.temperature - 1); save(state); } render(); }, 450);
+      }
+    });
+    document.body.addEventListener("input", (e) => {
+      if (e.target.id === "temp") { state.temperature = Number(e.target.value); save(state); e.target.parentElement.querySelector("p").innerHTML = "<strong>" + tempLabel(state.temperature) + "</strong> · " + state.temperature; }
+      if (e.target.id === "fs") { state.fontSize = Number(e.target.value); save(state); applyChrome(); }
+      if (e.target.id === "ls") { state.letterSpacing = Number(e.target.value); save(state); applyChrome(); }
+      if (e.target.id === "lh") { state.lineHeight = Number(e.target.value); save(state); applyChrome(); }
+    });
+    document.body.addEventListener("submit", (e) => {
+      if (e.target.id === "sendForm") {
+        e.preventDefault();
+        const box = document.getElementById("box");
+        const text = (box.value || "").trim();
+        if (!text) return;
+        box.value = "";
+        touchStreak();
+        chatMsgs.push({ role: "user", text });
+        const local = Lexi.coachOnDevice(text, chatTurn++);
+        chatMsgs.push({ role: "assistant", text: local.reply, userClean: local.userClean, tokens: Lexi.applyNoise(local.reply, state.temperature) });
+        render();
+      }
+      if (e.target.id === "typeForm") {
+        e.preventDefault();
+        const card = drill.cards[drill.i];
+        const typed = (document.getElementById("typed").value || "").trim().toLowerCase();
+        if (typed === card.answer.toLowerCase()) drill.right += 1;
+        state.wordsPracticed += 1; save(state); touchStreak();
+        drill.i += 1;
+        if (drill.i >= drill.cards.length) drill.done = true;
+        render();
+      }
+    });
+    render();
+  </script>
+</body>
+</html>

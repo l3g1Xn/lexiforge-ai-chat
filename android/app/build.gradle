@@ -1,0 +1,83 @@
+plugins {
+    id "com.android.application"
+}
+
+import java.util.Properties
+import java.io.FileInputStream
+
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
+def demoStoreFile = rootProject.file("keystore/lexiforge-release.jks")
+def storeFilePath = keystoreProps.getProperty("storeFile", "keystore/lexiforge-release.jks")
+def resolvedStore = rootProject.file(storeFilePath)
+if (!resolvedStore.exists()) {
+    resolvedStore = demoStoreFile
+}
+def storePass = keystoreProps.getProperty("storePassword", "LexiForgeSideload")
+def keyAliasName = keystoreProps.getProperty("keyAlias", "lexiforge")
+def keyPass = keystoreProps.getProperty("keyPassword", "LexiForgeSideload")
+
+android {
+    namespace "app.lexiforge.alpha"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.lexiforge.alpha"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+        resConfigs "en"
+    }
+
+    signingConfigs {
+        release {
+            storeFile resolvedStore
+            storePassword storePass
+            keyAlias keyAliasName
+            keyPassword keyPass
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
+        debug {
+            storeFile resolvedStore
+            storePassword storePass
+            keyAlias keyAliasName
+            keyPassword keyPass
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            debuggable false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            debuggable true
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+}

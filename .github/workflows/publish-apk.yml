@@ -1,0 +1,87 @@
+name: Publish Android APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
+      - name: Verify sideload keystore
+        run: test -f android/keystore/lexiforge-release.jks
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          TAG="${TAG#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "apk=LexiForge-${TAG}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed release APK
+        working-directory: android
+        run: gradle assembleRelease --no-daemon
+
+      - name: Stage APK
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          SRC=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          test -f "$SRC"
+          cp "$SRC" "dist/${{ steps.ver.outputs.apk }}"
+          jarsigner -verify "dist/${{ steps.ver.outputs.apk }}"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: LexiForge ${{ steps.ver.outputs.tag }}
+          files: dist/${{ steps.ver.outputs.apk }}
+          fail_on_unmatched_files: true
+          body: |
+            ## LexiForge ${{ steps.ver.outputs.tag }}
+
+            Sideload Android APK. On-device reading helper. Not a diagnosis. Not a treatment.
+
+            Package `app.lexiforge.alpha` — signed v1+v2+v3 (sideload cert, not Play Store).
+
+            ### Install
+            1. Download **${{ steps.ver.outputs.apk }}**
+            2. Open the file on the phone. Allow install from this source if asked.
+            3. If Play Protect says uncommon: More details → Install anyway.
+
+            iOS App Store / IPA is not included. That needs a Mac, Xcode, and an Apple Developer account.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

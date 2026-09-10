@@ -2,14 +2,15 @@
 
 On-device reading helper and letter trainer. Not a diagnosis. Not a treatment.
 
-LexiForge cleans messy text, talks in short lines, and runs look-alike drills. It does **not** call a cloud model. Cleaning, chat, and drills use a bundled on-device pack:
+LexiForge cleans messy text, talks in short lines, and runs look-alike drills. Cleaning, chat, and drills use a bundled on-device pack (~20,000-word lexicon, ~25,000 misspellings, instruction card). No cloud model.
 
-| Pack | Size |
-| --- | --- |
-| Lexicon | ~20,000 words |
-| Misspelling map | ~25,000 entries |
-| Instruction card | voice, safety, reply recipes |
-| Sign / word meanings | common signs and short definitions |
+## Download (Android)
+
+Sideload APK from **[Releases](https://github.com/l3g1Xn/lexiforge-ai-chat/releases)**.
+
+Package `app.lexiforge.alpha`. Signed for sideload (not Play Store). If Play Protect says uncommon: More details → Install anyway.
+
+iOS IPA is not included. That needs a Mac, Xcode, and an Apple Developer account.
 
 ## What it does
 
@@ -22,13 +23,16 @@ LexiForge cleans messy text, talks in short lines, and runs look-alike drills. I
 
 > This is a practice tool and a reading helper. It does not diagnose or treat dyslexia. You control how hard it is. Use Clean mode whenever you need the real words.
 
-## Android and iOS store installers
+## Build the APK
 
-This repository does **not** contain a signed Play Store APK or App Store IPA.
+GitHub Actions (this repo) builds and publishes the APK:
 
-Those binaries need:
+- Push a `v*` tag, or
+- Actions → **Publish Android APK** → Run workflow
 
-- Android: Android Studio, the Android SDK, and a keystore on a local machine
-- iOS: a Mac, Xcode, and an Apple Developer account
+Local (needs Android SDK):
 
-This builder runs on Linux without those SDKs, so it cannot produce signed installers. The working product here is the on-device app source (lexicon, misspellings, instruction pack, screens).
+```bash
+echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+cd android && gradle assembleRelease
+```
